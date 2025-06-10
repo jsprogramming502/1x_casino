@@ -1,0 +1,3741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1x_Casino</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff5722;
+            --primary-hover: #e64a19;
+            --secondary-color: #4caf50;
+            --secondary-hover: #388e3c;
+            --accent-color: #ffcc00;
+            --dark-bg: #121212;
+            --darker-bg: #0a0a0a;
+            --card-bg: #1e1e1e;
+            --card-border: #2d2d2d;
+            --text-light: #ffffff;
+            --text-muted: #aaaaaa;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--accent-color) !important;
+        }
+
+        .game-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            transition: transform 0.3s ease;
+        }
+
+        .game-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .game-title {
+            color: var(--accent-color);
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .game-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 3px;
+        }
+
+        .btn-bet {
+            background-color: var(--primary-color);
+            border: none;
+            margin: 5px;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-bet:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-cashout {
+            background-color: var(--secondary-color);
+            border: none;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-cashout:hover {
+            background-color: var(--secondary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .balance {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .balance i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .crash-graph {
+            height: 250px;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin-bottom: 20px;
+        }
+
+        .crash-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            z-index: 2;
+        }
+
+        .crash-multiplier {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            z-index: 3;
+        }
+
+        .crash-countdown {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 25px;
+            border-radius: 50%;
+            z-index: 4;
+            display: none;
+        }
+
+        .crash-graph-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 87, 34, 0.1) 0%, rgba(255, 204, 0, 0.1) 100%);
+            z-index: 1;
+        }
+
+        /* Rocket Animation */
+        .rocket-container {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 100px;
+            z-index: 5;
+        }
+
+        .rocket {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            height: 80px;
+            background: linear-gradient(to bottom, #ff5722, #ff9800);
+            border-radius: 50% 50% 0 0;
+            transform: translateX(-50%);
+            z-index: 6;
+        }
+
+        .rocket::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #ff9800;
+        }
+
+        .flames {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(to bottom, #ffeb3b, #ff5722);
+            border-radius: 50% 50% 0 0;
+            filter: blur(5px);
+            animation: flame 0.3s infinite alternate;
+            z-index: 5;
+        }
+
+        @keyframes flame {
+            0% { height: 40px; width: 30px; }
+            100% { height: 50px; width: 25px; }
+        }
+
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 1s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .avatar-item {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .avatar-item i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .avatar-item:hover {
+            transform: scale(1.05);
+            border-color: var(--primary-color);
+            box-shadow: 0 5px 15px rgba(255, 87, 34, 0.3);
+        }
+
+        .avatar-item.selected {
+            background-color: rgba(255, 87, 34, 0.2);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(255, 87, 34, 0.5);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid var(--card-border);
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--text-light);
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            margin-right: 5px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background-color: rgba(255, 87, 34, 0.1);
+            border-color: transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+        }
+
+        .admin-panel {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+        }
+
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--darker-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-light);
+            padding: 12px 15px;
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--darker-bg);
+            color: var(--text-light);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(255, 87, 34, 0.25);
+        }
+
+        .badge {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 20px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        .bg-danger {
+            background-color: var(--danger-color) !important;
+        }
+
+        .bg-info {
+            background-color: var(--info-color) !important;
+        }
+
+        .table-dark {
+            background-color: var(--card-bg);
+            color: var(--text-light);
+        }
+
+        .table-dark th {
+            background-color: var(--darker-bg);
+            border-color: var(--card-border);
+        }
+
+        .table-dark td {
+            border-color: var(--card-border);
+        }
+
+        .history-container {
+            background-color: var(--darker-bg);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid var(--card-border);
+            margin-top: 20px;
+        }
+
+        .history-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .history-title i {
+            margin-right: 10px;
+        }
+
+        .history-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .apple-wheel {
+            font-size: 3rem;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: var(--darker-bg);
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .crystal-btn {
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+
+        .crystal-btn i {
+            margin-right: 10px;
+        }
+
+        .underover-btn {
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: none;
+            min-width: 150px;
+        }
+
+        .bet-input-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .bet-input-container label {
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .bet-input-container .input-group-text {
+            background-color: var(--darker-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-light);
+        }
+
+        .bet-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .bet-quick-amount {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .bet-quick-amount .btn {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 0.9rem;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast-header {
+            background-color: var(--darker-bg);
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-light);
+        }
+
+        .toast-body {
+            color: var(--text-light);
+        }
+
+        .auth-container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .auth-form {
+            padding: 20px;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: var(--text-muted);
+        }
+
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .auth-divider::before {
+            margin-right: 15px;
+        }
+
+        .auth-divider::after {
+            margin-left: 15px;
+        }
+
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .social-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .facebook {
+            background-color: #3b5998;
+        }
+
+        .google {
+            background-color: #db4437;
+        }
+
+        .twitter {
+            background-color: #1da1f2;
+        }
+
+        .apple {
+            background-color: #000000;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--darker-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .avatar-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .underover-btn, .crystal-btn {
+                padding: 12px 15px;
+                font-size: 1rem;
+                min-width: auto;
+            }
+            
+            .game-container {
+                padding: 15px;
+            }
+            
+            .crash-graph {
+                height: 180px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .avatar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .auth-container {
+                padding: 20px;
+                margin: 20px auto;
+            }
+            
+            .balance {
+                font-size: 1.2rem;
+                padding: 8px 15px;
+            }
+        }
+
+        /* Bank section */
+        .bank-section {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--card-border);
+        }
+
+        .bank-title {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .bank-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .bank-actions {
+                flex-direction: column;
+            }
+        }
+
+        .bank-input {
+            margin-bottom: 15px;
+        }
+
+        .bank-history {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .bank-history-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bank-history-item:last-child {
+            border-bottom: none;
+        }
+
+        .bank-status-pending {
+            color: var(--accent-color);
+        }
+
+        .bank-status-approved {
+            color: var(--success-color);
+        }
+
+        .bank-status-rejected {
+            color: var(--danger-color);
+        }
+
+        /* Auto cashout toggle */
+        .auto-cashout-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .auto-cashout-toggle .form-check-input {
+            margin-right: 10px;
+        }
+
+        .auto-cashout-fields {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .auto-cashout-fields.show {
+            display: block;
+        }
+
+        /* Quick cashout buttons */
+        .quick-cashout {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .quick-cashout .btn {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Wallet info modal */
+        .wallet-info {
+            word-break: break-all;
+            background-color: var(--darker-bg);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        /* Game status indicator */
+        .game-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        .game-status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: var(--danger-color);
+        }
+
+        .game-status-indicator.running {
+            background-color: var(--success-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .game-status-indicator.countdown {
+            background-color: var(--accent-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Active bets table */
+        .active-bets-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .active-bets-table th, .active-bets-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .active-bets-table th {
+            background-color: var(--darker-bg);
+        }
+     #admin-btn{
+         display:none;
+     }
+    </style>
+</head>
+<body>
+    <!-- Toast Notifications -->
+    <div class="toast-container">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toast-title">Notification</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+                This is a notification message.
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="auth-container">
+        <h1 class="auth-title"><i class="fas fa-coins me-2"></i>1x_Casino</h1>
+        
+        <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Login</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Register</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="authTabsContent">
+            <!-- Login Tab -->
+            <div class="tab-pane fade show active" id="login" role="tabpanel">
+                <div class="auth-form">
+                    <div class="mb-3">
+                        <label for="login-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="login-email" placeholder="Enter your email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="login-password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="login-password" placeholder="Enter your password">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button id="login-btn" class="btn btn-bet">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="#" id="forgot-password" class="text-muted">Forgot password?</a>
+                    </div>
+                </div>
+                
+                <div class="auth-divider">OR</div>
+                
+                <div class="text-center">
+                    <p class="text-muted">Login with social media</p>
+                    <div class="social-login">
+                        <button class="social-btn facebook"><i class="fab fa-facebook-f"></i></button>
+                        <button class="social-btn google"><i class="fab fa-google"></i></button>
+                        <button class="social-btn twitter"><i class="fab fa-twitter"></i></button>
+                        <button class="social-btn apple"><i class="fab fa-apple"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Register Tab -->
+            <div class="tab-pane fade" id="register" role="tabpanel">
+                <div class="auth-form">
+                    <div class="mb-3">
+                        <label for="register-username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="register-username" placeholder="Choose a username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="register-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="register-email" placeholder="Enter your email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="register-password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="register-password" placeholder="Create a password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="register-confirm-password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="register-confirm-password" placeholder="Confirm your password">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="register-terms">
+                        <label class="form-check-label" for="register-terms">
+                            I agree to the <a href="#" class="text-primary">Terms and Conditions</a>
+                        </label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button id="register-btn" class="btn btn-bet">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="auth-divider">OR</div>
+                
+                <div class="text-center">
+                    <p class="text-muted">Register with social media</p>
+                    <div class="social-login">
+                        <button class="social-btn facebook"><i class="fab fa-facebook-f"></i></button>
+                        <button class="social-btn google"><i class="fab fa-google"></i></button>
+                        <button class="social-btn twitter"><i class="fab fa-twitter"></i></button>
+                        <button class="social-btn apple"><i class="fab fa-apple"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Section (shown after auth) -->
+    <div id="game-section" class="container py-4 hidden">
+        <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-coins me-2"></i>1x_Casino
+                </a>
+                <div class="d-flex align-items-center">
+                    <div class="balance me-3">
+                        <i class="fas fa-wallet"></i>
+                        <span id="user-balance">0</span>
+                    </div>
+                    <button id="logout-btn" class="btn btn-outline-danger me-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    <button id="admin-btn" class="btn btn-warning hidden">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <ul class="nav nav-tabs" id="gameTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="crash-tab" data-bs-toggle="tab" data-bs-target="#crash" type="button" role="tab">
+                    <i class="fas fa-chart-line me-2"></i>Crash
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="avatar-tab" data-bs-toggle="tab" data-bs-target="#avatar" type="button" role="tab">
+                    <i class="fas fa-user-astronaut me-2"></i>Avatar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="underover-tab" data-bs-toggle="tab" data-bs-target="#underover" type="button" role="tab">
+                    <i class="fas fa-dice me-2"></i>Under/Over
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="crystal-tab" data-bs-toggle="tab" data-bs-target="#crystal" type="button" role="tab">
+                    <i class="fas fa-gem me-2"></i>Crystal
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="apple-tab" data-bs-toggle="tab" data-bs-target="#apple" type="button" role="tab">
+                    <i class="fas fa-apple-alt me-2"></i>Apple
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank" type="button" role="tab">
+                    <i class="fas fa-university me-2"></i>Bank
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="gameTabsContent">
+            <!-- Crash Game -->
+            <div class="tab-pane fade show active game-container" id="crash" role="tabpanel">
+                <h3 class="game-title">Crash Game</h3>
+                
+                <div class="game-status">
+                    <div class="game-status-indicator" id="game-status-indicator"></div>
+                    <span id="game-status-text">Game starting soon</span>
+                </div>
+                
+                <div class="crash-graph">
+                    <div class="crash-graph-bg"></div>
+                    <div class="stars" id="stars"></div>
+                    <div class="rocket-container" id="rocket-container">
+                        <div class="rocket" id="rocket"></div>
+                        <div class="flames" id="flames"></div>
+                    </div>
+                    <div class="crash-line" id="crash-line"></div>
+                    <div class="crash-multiplier" id="crash-multiplier">1.00x</div>
+                    <div class="crash-countdown" id="crash-countdown">10</div>
+                </div>
+                
+                <div class="bet-input-container">
+                    <label for="crash-bet-amount">Bet Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input type="number" class="form-control" id="crash-bet-amount" value="10" min="1" step="1">
+                    </div>
+                    <div class="bet-quick-amount">
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="10">10</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="50">50</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="100">100</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="500">500</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <div class="auto-cashout-toggle">
+                    <input class="form-check-input" type="checkbox" id="enable-auto-cashout">
+                    <label class="form-check-label" for="enable-auto-cashout">Enable Auto Cashout</label>
+                </div>
+                
+                <div class="auto-cashout-fields" id="auto-cashout-fields">
+                    <div class="bet-input-container">
+                        <label for="crash-auto-cashout">Auto Cashout (x)</label>
+                        <input type="number" class="form-control" id="crash-auto-cashout" value="2.00" step="0.01" min="1.01">
+                    </div>
+                    <div class="quick-cashout">
+                        <button class="btn btn-sm btn-outline-primary quick-cashout" data-multiplier="1.5">1.5x</button>
+                        <button class="btn btn-sm btn-outline-primary quick-cashout" data-multiplier="2">2x</button>
+                        <button class="btn btn-sm btn-outline-primary quick-cashout" data-multiplier="3">3x</button>
+                        <button class="btn btn-sm btn-outline-primary quick-cashout" data-multiplier="5">5x</button>
+                        <button class="btn btn-sm btn-outline-primary quick-cashout" data-multiplier="10">10x</button>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button id="crash-bet-btn" class="btn btn-bet">
+                        <i class="fas fa-play me-2"></i>Place Bet
+                    </button>
+                    <button id="crash-cashout-btn" class="btn btn-cashout hidden">
+                        <i class="fas fa-money-bill-wave me-2"></i>Cashout
+                    </button>
+                </div>
+                
+                <div id="active-bets-container" class="hidden">
+                    <h5 class="history-title mt-4">
+                        <i class="fas fa-coins me-2"></i>Your Active Bets
+                    </h5>
+                    <table class="active-bets-table">
+                        <thead>
+                            <tr>
+                                <th>Amount</th>
+                                <th>Auto Cashout</th>
+                                <th>Current Multiplier</th>
+                                <th>Potential Win</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-bets-table">
+                            <!-- Active bets will be shown here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="history-container">
+                    <h5 class="history-title">
+                        <i class="fas fa-history"></i>Recent Multipliers
+                    </h5>
+                    <div id="crash-history" class="history-items"></div>
+                </div>
+            </div>
+
+            <!-- Avatar Game -->
+            <div class="tab-pane fade game-container" id="avatar" role="tabpanel">
+                <h3 class="game-title">Avatar Game</h3>
+                
+                <div class="bet-input-container">
+                    <label for="avatar-bet-amount">Bet Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input type="number" class="form-control" id="avatar-bet-amount" value="10" min="1" step="1">
+                    </div>
+                    <div class="bet-quick-amount">
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="10">10</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="50">50</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="100">100</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="500">500</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <div class="avatar-grid">
+                    <div class="avatar-item" data-avatar="1">
+                        <i class="fas fa-user-ninja"></i>
+                        <span>Ninja</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="2">
+                        <i class="fas fa-user-astronaut"></i>
+                        <span>Astronaut</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="3">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Business</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="4">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Graduate</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="5">
+                        <i class="fas fa-user-md"></i>
+                        <span>Doctor</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="6">
+                        <i class="fas fa-user-secret"></i>
+                        <span>Secret</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="7">
+                        <i class="fas fa-user-injured"></i>
+                        <span>Injured</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="8">
+                        <i class="fas fa-user-nurse"></i>
+                        <span>Nurse</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="9">
+                        <i class="fas fa-user-cowboy"></i>
+                        <span>Cowboy</span>
+                    </div>
+                    <div class="avatar-item" data-avatar="10">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Shield</span>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button id="avatar-bet-btn" class="btn btn-bet">
+                        <i class="fas fa-play me-2"></i>Place Bet
+                    </button>
+                </div>
+                
+                <div class="history-container">
+                    <h5 class="history-title">
+                        <i class="fas fa-history"></i>Last Results
+                    </h5>
+                    <div id="avatar-history" class="history-items"></div>
+                </div>
+            </div>
+
+            <!-- Under/Over 7 Game -->
+            <div class="tab-pane fade game-container" id="underover" role="tabpanel">
+                <h3 class="game-title">Under/Over 7</h3>
+                
+                <div class="bet-input-container">
+                    <label for="underover-bet-amount">Bet Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="underover-bet-amount" value="10" min="1" step="1">
+                    </div>
+                    <div class="bet-quick-amount">
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="10">10</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="50">50</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="100">100</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="500">500</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button id="under-btn" class="underover-btn btn-danger" data-choice="under">
+                        <i class="fas fa-arrow-down me-2"></i>Under 7
+                    </button>
+                    <button id="seven-btn" class="underover-btn btn-warning" data-choice="seven">
+                        <i class="fas fa-equals me-2"></i>Exactly 7
+                    </button>
+                    <button id="over-btn" class="underover-btn btn-success" data-choice="over">
+                        <i class="fas fa-arrow-up me-2"></i>Over 7
+                    </button>
+                </div>
+                
+                <div class="history-container">
+                    <h5 class="history-title">
+                        <i class="fas fa-history"></i>Last Results
+                    </h5>
+                    <div id="underover-history" class="history-items"></div>
+                </div>
+            </div>
+
+            <!-- Crystal Game -->
+            <div class="tab-pane fade game-container" id="crystal" role="tabpanel">
+                <h3 class="game-title">Crystal Game</h3>
+                
+                <div class="bet-input-container">
+                    <label for="crystal-bet-amount">Bet Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="crystal-bet-amount" value="10" min="1" step="1">
+                    </div>
+                    <div class="bet-quick-amount">
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="10">10</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="50">50</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="100">100</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="500">500</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button id="red-crystal" class="crystal-btn btn-danger" data-color="red">
+                        <i class="fas fa-gem me-2"></i>Red
+                    </button>
+                    <button id="blue-crystal" class="crystal-btn btn-primary" data-color="blue">
+                        <i class="fas fa-gem me-2"></i>Blue
+                    </button>
+                    <button id="green-crystal" class="crystal-btn btn-success" data-color="green">
+                        <i class="fas fa-gem me-2"></i>Green
+                    </button>
+                    <button id="purple-crystal" class="crystal-btn" style="background-color: purple; color: white;" data-color="purple">
+                        <i class="fas fa-gem me-2"></i>Purple
+                    </button>
+                </div>
+                
+                <div class="history-container">
+                    <h5 class="history-title">
+                        <i class="fas fa-history"></i>Last Results
+                    </h5>
+                    <div id="crystal-history" class="history-items"></div>
+                </div>
+            </div>
+
+            <!-- Apple of Fortune -->
+            <div class="tab-pane fade game-container" id="apple" role="tabpanel">
+                <h3 class="game-title">Apple of Fortune</h3>
+                
+                <div class="bet-input-container">
+                    <label for="apple-bet-amount">Bet Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="apple-bet-amount" value="10" min="1" step="1">
+                    </div>
+                    <div class="bet-quick-amount">
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="10">10</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="50">50</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="100">100</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="500">500</button>
+                        <button class="btn btn-sm btn-outline-primary quick-bet" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center">
+                    <button id="apple-spin" class="btn btn-bet" style="width: 200px;">
+                        <i class="fas fa-redo me-2"></i>Spin
+                    </button>
+                </div>
+                
+                <div class="apple-wheel" id="apple-wheel">
+                    🍎🍏🍎🍏🍎🍏
+                </div>
+                
+                <div class="history-container">
+                    <h5 class="history-title">
+                        <i class="fas fa-history"></i>Last Results
+                    </h5>
+                    <div id="apple-history" class="history-items"></div>
+                </div>
+            </div>
+
+            <!-- Bank Section -->
+            <div class="tab-pane fade game-container" id="bank" role="tabpanel">
+                <h3 class="game-title">Bank</h3>
+                
+                <div class="bank-section">
+                    <h4 class="bank-title"><i class="fas fa-university me-2"></i>Bank Transactions</h4>
+                    
+                    <div class="bank-actions">
+                        <button class="btn btn-primary" id="deposit-btn">
+                            <i class="fas fa-money-bill-wave me-2"></i>Deposit
+                        </button>
+                        <button class="btn btn-success" id="withdraw-btn">
+                            <i class="fas fa-hand-holding-usd me-2"></i>Withdraw
+                        </button>
+                    </div>
+                    
+                    <div id="deposit-form" class="hidden">
+                        <div class="bank-input">
+                            <label for="deposit-amount" class="form-label">Deposit Amount (৳)</label>
+                            <input type="number" class="form-control" id="deposit-amount" min="10" step="1" placeholder="Minimum ৳10">
+                        </div>
+                        <div class="bank-input">
+                            <label for="deposit-method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="deposit-method">
+                                <option value="credit_card">Credit Card</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="crypto">Cryptocurrency</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="submit-deposit">
+                                <i class="fas fa-check me-2"></i>Submit Deposit Request
+                            </button>
+                            <button class="btn btn-secondary" id="cancel-deposit">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="withdraw-form" class="hidden">
+                        <div class="bank-input">
+                            <label for="withdraw-amount" class="form-label">Withdraw Amount (৳)</label>
+                            <input type="number" class="form-control" id="withdraw-amount" min="20" step="1" placeholder="Minimum ৳20">
+                        </div>
+                        <div class="bank-input">
+                            <label for="withdraw-method" class="form-label">Withdrawal Method</label>
+                            <select class="form-select" id="withdraw-method">
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="crypto">Cryptocurrency</option>
+                            </select>
+                        </div>
+                        <div class="bank-input">
+                            <label for="withdraw-wallet" class="form-label">Wallet/Account Number</label>
+                            <input type="text" class="form-control" id="withdraw-wallet" placeholder="Enter your wallet/account details">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" id="submit-withdraw">
+                                <i class="fas fa-check me-2"></i>Submit Withdrawal Request
+                            </button>
+                            <button class="btn btn-secondary" id="cancel-withdraw">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="history-container mt-4">
+                        <h5 class="history-title">
+                            <i class="fas fa-history me-2"></i>Transaction History
+                        </h5>
+                        <div class="bank-history" id="bank-history">
+                            <!-- Transactions will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="container py-4 hidden">
+        <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-cog me-2"></i>Admin Panel
+                </a>
+                <div class="d-flex align-items-center">
+                    <button id="back-to-games" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Games
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>Users
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
+                    <i class="fas fa-sliders-h me-2"></i>Game Settings
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" type="button" role="tab">
+                    <i class="fas fa-exchange-alt me-2"></i>Transactions
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bank-requests-tab" data-bs-toggle="tab" data-bs-target="#bank-requests" type="button" role="tab">
+                    <i class="fas fa-university me-2"></i>Bank Requests
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="adminTabsContent">
+            <!-- Users Tab -->
+            <div class="tab-pane fade show active" id="users" role="tabpanel">
+                <div class="admin-panel">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="user-search" placeholder="Search users...">
+                            <button class="btn btn-primary" id="search-user-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="user-list">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Balance</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table">
+                                <!-- Users will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="prev-users">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="next-users">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <span id="user-pagination-info">Showing 1-10 of 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
+                <div class="admin-panel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-chart-line me-2"></i>Crash Game Settings</h4>
+                <!-- In the settings tab of your admin panel -->
+<!-- In the settings tab of your admin panel -->
+<div class="row mt-4">
+  <div class="col-md-6">
+    <h4><i class="fas fa-chart-line me-2"></i>Crash Game Settings</h4>
+    <div class="mb-3">
+      <label for="crash-house-edge" class="form-label">House Edge (%)</label>
+      <input type="number" class="form-control" id="crash-house-edge" value="2" min="0" max="10" step="0.1">
+    </div>
+    <div class="mb-3">
+      <label for="crash-max-multiplier" class="form-label">Max Multiplier</label>
+      <input type="number" class="form-control" id="crash-max-multiplier" value="100" min="1" step="1">
+    </div>
+    
+    <!-- Crash Range Settings -->
+    <div class="mb-3">
+      <label for="low-crash-range" class="form-label">Low Crash Range (1.00 - X)</label>
+      <input type="number" class="form-control" id="low-crash-range" value="2.00" min="1.01" step="0.01">
+    </div>
+    <div class="mb-3">
+      <label for="low-crash-chance" class="form-label">Low Crash Chance (%)</label>
+      <input type="number" class="form-control" id="low-crash-chance" value="60" min="1" max="100" step="1">
+    </div>
+    <div class="mb-3">
+      <label for="medium-crash-range" class="form-label">Medium Crash Range (X - Y)</label>
+      <input type="number" class="form-control" id="medium-crash-range" value="10.00" min="2.01" step="0.01">
+    </div>
+    <div class="mb-3">
+      <label for="medium-crash-chance" class="form-label">Medium Crash Chance (%)</label>
+      <input type="number" class="form-control" id="medium-crash-chance" value="30" min="1" max="100" step="1">
+    </div>
+    <div class="mb-3">
+      <label for="high-crash-chance" class="form-label">High Crash Chance (%)</label>
+      <input type="number" class="form-control" id="high-crash-chance" value="10" min="1" max="100" step="1">
+    </div>
+    <div class="mb-3">
+      <label for="high-crash-min" class="form-label">High Crash Minimum</label>
+      <input type="number" class="form-control" id="high-crash-min" value="10.01" min="2.01" step="0.01">
+    </div>
+  </div>
+  <!-- Rest of your settings -->
+</div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-user-astronaut me-2"></i>Avatar Game Settings</h4>
+                            <div class="mb-3">
+                                <label for="avatar-win-multiplier" class="form-label">Win Multiplier</label>
+                                <input type="number" class="form-control" id="avatar-win-multiplier" value="8" min="1" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-dice me-2"></i>Under/Over 7 Settings</h4>
+                            <div class="mb-3">
+                                <label for="under-payout" class="form-label">Under 7 Payout</label>
+                                <input type="number" class="form-control" id="under-payout" value="1.5" min="1" step="0.1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="over-payout" class="form-label">Over 7 Payout</label>
+                                <input type="number" class="form-control" id="over-payout" value="1.5" min="1" step="0.1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="seven-payout" class="form-label">Exactly 7 Payout</label>
+                                <input type="number" class="form-control" id="seven-payout" value="4" min="1" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-gem me-2"></i>Crystal Game Settings</h4>
+                            <div class="mb-3">
+                                <label for="crystal-payout" class="form-label">Win Payout</label>
+                                <input type="number" class="form-control" id="crystal-payout" value="3" min="1" step="0.1">
+                            </div>
+                            
+                            <h4 class="mt-4"><i class="fas fa-apple-alt me-2"></i>Apple Game Settings</h4>
+                            <div class="mb-3">
+                                <label for="apple-payout" class="form-label">Win Payout</label>
+                                <input type="number" class="form-control" id="apple-payout" value="2" min="1" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button id="save-settings" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div class="tab-pane fade" id="transactions" role="tabpanel">
+                <div class="admin-panel">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="transaction-user" class="form-label">Filter by User</label>
+                            <select class="form-select" id="transaction-user">
+                                <option value="">All Users</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="transaction-game" class="form-label">Filter by Game</label>
+                            <select class="form-select" id="transaction-game">
+                                <option value="">All Games</option>
+                                <option value="crash">Crash</option>
+                                <option value="avatar">Avatar</option>
+                                <option value="underover">Under/Over 7</option>
+                                <option value="crystal">Crystal</option>
+                                <option value="apple">Apple of Fortune</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="transaction-date" class="form-label">Filter by Date</label>
+                            <input type="date" class="form-control" id="transaction-date">
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Game</th>
+                                    <th>Amount</th>
+                                    <th>Bet</th>
+                                    <th>Result</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                <!-- Transactions will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="prev-transactions">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="next-transactions">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <span id="transaction-pagination-info">Showing 1-10 of 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bank Requests Tab -->
+            <div class="tab-pane fade" id="bank-requests" role="tabpanel">
+                <div class="admin-panel">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="request-type" class="form-label">Filter by Type</label>
+                            <select class="form-select" id="request-type">
+                                <option value="">All Types</option>
+                                <option value="deposit">Deposit</option>
+                                <option value="withdraw">Withdraw</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="request-status" class="form-label">Filter by Status</label>
+                            <select class="form-select" id="request-status">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="request-date" class="form-label">Filter by Date</label>
+                            <input type="date" class="form-control" id="request-date">
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bank-requests-table">
+                                <!-- Bank requests will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="prev-requests">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" id="next-requests">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <span id="request-pagination-info">Showing 1-10 of 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Info Modal -->
+    <div class="modal fade" id="walletInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Wallet/Account Information</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="wallet-info-content" class="wallet-info">
+                        Loading wallet information...
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAwtMbpkkv2nYKClZYfJhRexD-Vz5C2CU",
+            authDomain: "casino-king-b7e09.firebaseapp.com",
+            databaseURL: "https://casino-king-b7e09-default-rtdb.firebaseio.com",
+            projectId: "casino-king-b7e09",
+            storageBucket: "casino-king-b7e09.appspot.com",
+            messagingSenderId: "835032800375",
+            appId: "1:835032800375:web:3c3a3aed6abcfeddb9ba72"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Game state variables
+        let currentUser = null;
+        let userData = null;
+        // In your JavaScript code
+let gameSettings = {
+  crash: {
+    houseEdge: 2,
+    maxMultiplier: 100,
+    lowCrashRange: 2.00,
+    mediumCrashRange: 10.00,
+    highCrashChance: 15, // 15% chance for high crash
+    highCrashMin: 10.01
+  },
+  // ... rest of your game settings
+
+            avatar: {
+                winMultiplier: 8
+            },
+            underover: {
+                underPayout: 1.5,
+                overPayout: 1.5,
+                sevenPayout: 4
+            },
+            crystal: {
+                payout: 3
+            },
+            apple: {
+                payout: 2
+            }
+        };
+
+        // Crash game state
+        let crashGameState = {
+            running: false,
+            crashed: false,
+            countdown: 10,
+            countdownInterval: null,
+            gameInterval: null,
+            currentMultiplier: 1.00,
+            activeBets: [],
+            autoCashoutEnabled: false,
+            autoCashoutMultiplier: 2.00
+        };
+
+        // Admin credentials
+        const ADMIN_EMAIL = "admin1x@gmail.com";
+        const ADMIN_PASSWORD = "admin1x";
+
+        // Pagination variables
+        let usersPagination = {
+            currentPage: 1,
+            pageSize: 10,
+            totalUsers: 0,
+            lastKey: null
+        };
+
+        let transactionsPagination = {
+            currentPage: 1,
+            pageSize: 10,
+            totalTransactions: 0,
+            lastKey: null
+        };
+
+        let requestsPagination = {
+            currentPage: 1,
+            pageSize: 10,
+            totalRequests: 0,
+            lastKey: null
+        };
+
+        // DOM elements
+        const authSection = document.getElementById('auth-section');
+        const gameSection = document.getElementById('game-section');
+        const adminPanel = document.getElementById('admin-panel');
+        const userBalance = document.getElementById('user-balance');
+        const logoutBtn = document.getElementById('logout-btn');
+        const adminBtn = document.getElementById('admin-btn');
+        const backToGamesBtn = document.getElementById('back-to-games');
+
+        // Auth elements
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginBtn = document.getElementById('login-btn');
+        const registerEmail = document.getElementById('register-email');
+        const registerPassword = document.getElementById('register-password');
+        const registerUsername = document.getElementById('register-username');
+        const registerConfirmPassword = document.getElementById('register-confirm-password');
+        const registerTerms = document.getElementById('register-terms');
+        const registerBtn = document.getElementById('register-btn');
+        const forgotPassword = document.getElementById('forgot-password');
+
+        // Game elements
+        // Crash game
+        const crashBetAmount = document.getElementById('crash-bet-amount');
+        const enableAutoCashout = document.getElementById('enable-auto-cashout');
+        const autoCashoutFields = document.getElementById('auto-cashout-fields');
+        const crashAutoCashout = document.getElementById('crash-auto-cashout');
+        const crashBetBtn = document.getElementById('crash-bet-btn');
+        const crashCashoutBtn = document.getElementById('crash-cashout-btn');
+        const crashHistory = document.getElementById('crash-history');
+        const crashLine = document.getElementById('crash-line');
+        const crashMultiplier = document.getElementById('crash-multiplier');
+        const crashCountdown = document.getElementById('crash-countdown');
+        const gameStatusIndicator = document.getElementById('game-status-indicator');
+        const gameStatusText = document.getElementById('game-status-text');
+        const activeBetsContainer = document.getElementById('active-bets-container');
+        const activeBetsTable = document.getElementById('active-bets-table');
+        const rocketContainer = document.getElementById('rocket-container');
+        const rocket = document.getElementById('rocket');
+        const flames = document.getElementById('flames');
+        const stars = document.getElementById('stars');
+        
+        // Avatar game
+        const avatarBetAmount = document.getElementById('avatar-bet-amount');
+        const avatarBetBtn = document.getElementById('avatar-bet-btn');
+        const avatarHistory = document.getElementById('avatar-history');
+        const avatarItems = document.querySelectorAll('.avatar-item');
+        
+        // Under/Over 7 game
+        const underoverBetAmount = document.getElementById('underover-bet-amount');
+        const underBtn = document.getElementById('under-btn');
+        const sevenBtn = document.getElementById('seven-btn');
+        const overBtn = document.getElementById('over-btn');
+        const underoverHistory = document.getElementById('underover-history');
+        
+        // Crystal game
+        const crystalBetAmount = document.getElementById('crystal-bet-amount');
+        const redCrystal = document.getElementById('red-crystal');
+        const blueCrystal = document.getElementById('blue-crystal');
+        const greenCrystal = document.getElementById('green-crystal');
+        const purpleCrystal = document.getElementById('purple-crystal');
+        const crystalHistory = document.getElementById('crystal-history');
+        
+        // Apple game
+        const appleBetAmount = document.getElementById('apple-bet-amount');
+        const appleSpin = document.getElementById('apple-spin');
+        const appleWheel = document.getElementById('apple-wheel');
+        const appleHistory = document.getElementById('apple-history');
+
+        // Bank elements
+        const depositBtn = document.getElementById('deposit-btn');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        const depositForm = document.getElementById('deposit-form');
+        const withdrawForm = document.getElementById('withdraw-form');
+        const depositAmount = document.getElementById('deposit-amount');
+        const depositMethod = document.getElementById('deposit-method');
+        const submitDeposit = document.getElementById('submit-deposit');
+        const cancelDeposit = document.getElementById('cancel-deposit');
+        const withdrawAmount = document.getElementById('withdraw-amount');
+        const withdrawMethod = document.getElementById('withdraw-method');
+        const withdrawWallet = document.getElementById('withdraw-wallet');
+        const submitWithdraw = document.getElementById('submit-withdraw');
+        const cancelWithdraw = document.getElementById('cancel-withdraw');
+        const bankHistory = document.getElementById('bank-history');
+
+        // Quick bet buttons
+        const quickBetButtons = document.querySelectorAll('.quick-bet');
+        const quickCashoutButtons = document.querySelectorAll('.quick-cashout');
+
+        // Admin elements
+        const usersTable = document.getElementById('users-table');
+        const transactionsTable = document.getElementById('transactions-table');
+        const bankRequestsTable = document.getElementById('bank-requests-table');
+        const transactionUser = document.getElementById('transaction-user');
+        const transactionGame = document.getElementById('transaction-game');
+        const transactionDate = document.getElementById('transaction-date');
+        const requestType = document.getElementById('request-type');
+        const requestStatus = document.getElementById('request-status');
+        const requestDate = document.getElementById('request-date');
+        const saveSettingsBtn = document.getElementById('save-settings');
+        const userSearch = document.getElementById('user-search');
+        const searchUserBtn = document.getElementById('search-user-btn');
+        const prevUsersBtn = document.getElementById('prev-users');
+        const nextUsersBtn = document.getElementById('next-users');
+        const userPaginationInfo = document.getElementById('user-pagination-info');
+        const prevTransactionsBtn = document.getElementById('prev-transactions');
+        const nextTransactionsBtn = document.getElementById('next-transactions');
+        const transactionPaginationInfo = document.getElementById('transaction-pagination-info');
+        const prevRequestsBtn = document.getElementById('prev-requests');
+        const nextRequestsBtn = document.getElementById('next-requests');
+        const requestPaginationInfo = document.getElementById('request-pagination-info');
+
+        // Game settings elements
+        const crashHouseEdge = document.getElementById('crash-house-edge');
+        const crashMaxMultiplier = document.getElementById('crash-max-multiplier');
+        const avatarWinMultiplier = document.getElementById('avatar-win-multiplier');
+        const underPayout = document.getElementById('under-payout');
+        const overPayout = document.getElementById('over-payout');
+        const sevenPayout = document.getElementById('seven-payout');
+        const crystalPayout = document.getElementById('crystal-payout');
+        const applePayout = document.getElementById('apple-payout');
+
+        // Modal elements
+        const walletInfoModal = new bootstrap.Modal(document.getElementById('walletInfoModal'));
+        const walletInfoContent = document.getElementById('wallet-info-content');
+
+        // Toast elements
+        const toastEl = document.getElementById('toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastMessage = document.getElementById('toast-message');
+        const toast = new bootstrap.Toast(toastEl);
+
+        // Initialize the app
+        function init() {
+            // Create stars for the crash game background
+            createStars();
+
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Check auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    loadUserData();
+                    authSection.classList.add('hidden');
+                    gameSection.classList.remove('hidden');
+                    showToast('Welcome!', 'You have successfully logged in.', 'success');
+                    
+                    // Check if this is the admin user
+                    if (user.email === ADMIN_EMAIL) {
+                        // Set admin privileges
+                        database.ref('users/' + user.uid).update({
+                            isAdmin: true
+                        });
+                    }
+                    
+                    // Start the crash game loop
+                    startCrashGameLoop();
+                } else {
+                    currentUser = null;
+                    authSection.classList.remove('hidden');
+                    gameSection.classList.add('hidden');
+                    adminPanel.classList.add('hidden');
+                    
+                    // Stop the crash game loop
+                    stopCrashGameLoop();
+                }
+            });
+
+            // Event listeners
+            loginBtn.addEventListener('click', handleLogin);
+            registerBtn.addEventListener('click', handleRegister);
+            logoutBtn.addEventListener('click', handleLogout);
+            adminBtn.addEventListener('click', showAdminPanel);
+            backToGamesBtn.addEventListener('click', showGameSection);
+            forgotPassword.addEventListener('click', handleForgotPassword);
+
+            // Game event listeners
+            setupGameEventListeners();
+
+            // Bank event listeners
+            setupBankEventListeners();
+
+            // Admin event listeners
+            saveSettingsBtn.addEventListener('click', saveGameSettings);
+            searchUserBtn.addEventListener('click', searchUsers);
+            userSearch.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchUsers();
+            });
+            prevUsersBtn.addEventListener('click', () => {
+                if (usersPagination.currentPage > 1) {
+                    usersPagination.currentPage--;
+                    loadAdminData();
+                }
+            });
+            nextUsersBtn.addEventListener('click', () => {
+                if (usersPagination.currentPage * usersPagination.pageSize < usersPagination.totalUsers) {
+                    usersPagination.currentPage++;
+                    loadAdminData();
+                }
+            });
+            prevTransactionsBtn.addEventListener('click', () => {
+                if (transactionsPagination.currentPage > 1) {
+                    transactionsPagination.currentPage--;
+                    loadTransactions();
+                }
+            });
+            nextTransactionsBtn.addEventListener('click', () => {
+                if (transactionsPagination.currentPage * transactionsPagination.pageSize < transactionsPagination.totalTransactions) {
+                    transactionsPagination.currentPage++;
+                    loadTransactions();
+                }
+            });
+            prevRequestsBtn.addEventListener('click', () => {
+                if (requestsPagination.currentPage > 1) {
+                    requestsPagination.currentPage--;
+                    loadBankRequests();
+                }
+            });
+            nextRequestsBtn.addEventListener('click', () => {
+                if (requestsPagination.currentPage * requestsPagination.pageSize < requestsPagination.totalRequests) {
+                    requestsPagination.currentPage++;
+                    loadBankRequests();
+                }
+            });
+            transactionUser.addEventListener('change', loadTransactions);
+            transactionGame.addEventListener('change', loadTransactions);
+            transactionDate.addEventListener('change', loadTransactions);
+            requestType.addEventListener('change', loadBankRequests);
+            requestStatus.addEventListener('change', loadBankRequests);
+            requestDate.addEventListener('change', loadBankRequests);
+
+            // Quick bet buttons
+            quickBetButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const amount = parseFloat(btn.dataset.amount);
+                    const activeTab = document.querySelector('.tab-pane.active');
+                    
+                    if (activeTab.id === 'crash') {
+                        crashBetAmount.value = amount;
+                    } else if (activeTab.id === 'avatar') {
+                        avatarBetAmount.value = amount;
+                    } else if (activeTab.id === 'underover') {
+                        underoverBetAmount.value = amount;
+                    } else if (activeTab.id === 'crystal') {
+                        crystalBetAmount.value = amount;
+                    } else if (activeTab.id === 'apple') {
+                        appleBetAmount.value = amount;
+                    }
+                });
+            });
+
+            // Quick cashout buttons
+            quickCashoutButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    crashAutoCashout.value = btn.dataset.multiplier;
+                });
+            });
+
+            // Auto cashout toggle
+            enableAutoCashout.addEventListener('change', () => {
+                if (enableAutoCashout.checked) {
+                    autoCashoutFields.classList.add('show');
+                    crashGameState.autoCashoutEnabled = true;
+                } else {
+                    autoCashoutFields.classList.remove('show');
+                    crashGameState.autoCashoutEnabled = false;
+                }
+            });
+
+            // Load game settings
+            loadGameSettings();
+        }
+
+        // Create stars for the crash game background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starsCount = 50;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // Random position
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                
+                // Random size
+                const size = Math.random() * 3;
+                
+                // Random animation delay
+                const delay = Math.random() * 1;
+                
+                star.style.left = `${left}%`;
+                star.style.top = `${top}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animationDelay = `${delay}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Setup game event listeners
+        function setupGameEventListeners() {
+            // Crash game
+            crashBetBtn.addEventListener('click', placeCrashBet);
+            crashCashoutBtn.addEventListener('click', cashoutCrashGame);
+
+            // Avatar game
+            avatarItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    avatarItems.forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                });
+            });
+            avatarBetBtn.addEventListener('click', playAvatarGame);
+
+            // Under/Over 7 game
+            underBtn.addEventListener('click', () => playUnderOverGame('under'));
+            sevenBtn.addEventListener('click', () => playUnderOverGame('seven'));
+            overBtn.addEventListener('click', () => playUnderOverGame('over'));
+
+            // Crystal game
+            redCrystal.addEventListener('click', () => playCrystalGame('red'));
+            blueCrystal.addEventListener('click', () => playCrystalGame('blue'));
+            greenCrystal.addEventListener('click', () => playCrystalGame('green'));
+            purpleCrystal.addEventListener('click', () => playCrystalGame('purple'));
+
+            // Apple game
+            appleSpin.addEventListener('click', playAppleGame);
+        }
+
+        // Setup bank event listeners
+        function setupBankEventListeners() {
+            depositBtn.addEventListener('click', () => {
+                depositForm.classList.remove('hidden');
+                withdrawForm.classList.add('hidden');
+                depositAmount.focus();
+            });
+
+            withdrawBtn.addEventListener('click', () => {
+                withdrawForm.classList.remove('hidden');
+                depositForm.classList.add('hidden');
+                withdrawAmount.focus();
+            });
+
+            cancelDeposit.addEventListener('click', () => {
+                depositForm.classList.add('hidden');
+                depositAmount.value = '';
+            });
+
+            cancelWithdraw.addEventListener('click', () => {
+                withdrawForm.classList.add('hidden');
+                withdrawAmount.value = '';
+                withdrawWallet.value = '';
+            });
+
+            submitDeposit.addEventListener('click', submitDepositRequest);
+            submitWithdraw.addEventListener('click', submitWithdrawRequest);
+        }
+
+        // Crash game loop functions
+        function startCrashGameLoop() {
+            // Start the countdown for the first game
+            startCrashCountdown();
+        }
+
+        function stopCrashGameLoop() {
+            // Clear any running intervals
+            if (crashGameState.gameInterval) clearInterval(crashGameState.gameInterval);
+            if (crashGameState.countdownInterval) clearInterval(crashGameState.countdownInterval);
+            
+            // Reset game state
+            crashGameState = {
+                running: false,
+                crashed: false,
+                countdown: 10,
+                countdownInterval: null,
+                gameInterval: null,
+                currentMultiplier: 1.00,
+                activeBets: [],
+                autoCashoutEnabled: false,
+                autoCashoutMultiplier: 2.00
+            };
+            
+            // Reset UI
+            crashMultiplier.textContent = '1.00x';
+            crashLine.style.height = '2px';
+            crashCountdown.style.display = 'none';
+            gameStatusIndicator.className = 'game-status-indicator';
+            gameStatusText.textContent = 'Game starting soon';
+            
+            // Reset rocket position
+            rocketContainer.style.bottom = '0px';
+        }
+
+        function startCrashCountdown() {
+            crashGameState.running = false;
+            crashGameState.crashed = false;
+            crashGameState.currentMultiplier = 1.00;
+            
+            // Update UI
+            crashCountdown.textContent = crashGameState.countdown;
+            crashCountdown.style.display = 'block';
+            crashMultiplier.textContent = '1.00x';
+            crashLine.style.height = '2px';
+            gameStatusIndicator.className = 'game-status-indicator countdown';
+            gameStatusText.textContent = 'Game starting in ' + crashGameState.countdown + 's';
+            
+            // Reset rocket position
+            rocketContainer.style.bottom = '0px';
+            
+            // Enable bet button and disable cashout button
+            crashBetBtn.disabled = false;
+            crashCashoutBtn.classList.add('hidden');
+            
+            // Start countdown
+            crashGameState.countdownInterval = setInterval(() => {
+                crashGameState.countdown--;
+                crashCountdown.textContent = crashGameState.countdown;
+                gameStatusText.textContent = 'Game starting in ' + crashGameState.countdown + 's';
+                
+                if (crashGameState.countdown <= 0) {
+                    clearInterval(crashGameState.countdownInterval);
+                    crashCountdown.style.display = 'none';
+                    crashGameState.countdown = 10;
+                    
+                    // Start the game
+                    runCrashGame();
+                }
+            }, 1000);
+        }
+
+        function runCrashGame() {
+  crashGameState.running = true;
+  crashGameState.crashed = false;
+  crashGameState.currentMultiplier = 1.00;
+  
+  // Update UI
+  gameStatusIndicator.className = 'game-status-indicator running';
+  gameStatusText.textContent = 'Game running - place your bets!';
+  
+  // Disable bet button and enable cashout button if user has active bets
+  crashBetBtn.disabled = true;
+  if (crashGameState.activeBets.some(bet => bet.userId === currentUser.uid && !bet.cashedOut)) {
+    crashCashoutBtn.classList.remove('hidden');
+  }
+  
+  // Determine crash type based on configured chances
+  const crashTypeRoll = Math.random() * 100;
+  let crashType = "low";
+  
+  if (crashTypeRoll < gameSettings.crash.lowCrashChance) {
+    crashType = "low";
+  } else if (crashTypeRoll < (gameSettings.crash.lowCrashChance + gameSettings.crash.mediumCrashChance)) {
+    crashType = "medium";
+  } else {
+    crashType = "high";
+  }
+  
+  // Start the game interval
+  crashGameState.gameInterval = setInterval(() => {
+    // Determine crash chance based on current multiplier and crash type
+    let crashChance;
+    
+    if (crashType === "high") {
+      // For high crashes, use a different algorithm that allows for higher multipliers
+      crashChance = 0.00005 + (crashGameState.currentMultiplier * 0.00005);
+      
+      // Ensure we don't go beyond max multiplier
+      if (crashGameState.currentMultiplier >= gameSettings.crash.maxMultiplier) {
+        crashGameState.crashed = true;
+      }
+    } else if (crashType === "medium") {
+      // Medium crash range - moderate chance to crash
+      if (crashGameState.currentMultiplier < gameSettings.crash.mediumCrashRange) {
+        crashChance = 0.0005 + (crashGameState.currentMultiplier * 0.0005);
+      } else {
+        // Beyond medium range - transition to high crash
+        crashChance = 0.0005 + (crashGameState.currentMultiplier * 0.0005);
+      }
+    } else {
+      // Low crash range - higher chance to crash
+      if (crashGameState.currentMultiplier < gameSettings.crash.lowCrashRange) {
+        crashChance = 0.0005 + (crashGameState.currentMultiplier * 0.0005);
+      } else {
+        // Beyond low range - transition to medium crash
+        crashChance = 0.05 + (crashGameState.currentMultiplier * 0.05);
+      }
+    }
+    
+    if (Math.random() < crashChance && crashGameState.currentMultiplier >= 1.01) {
+      // Game crashed
+      crashGameState.crashed = true;
+      clearInterval(crashGameState.gameInterval);
+      
+      // Update UI
+      gameStatusIndicator.className = 'game-status-indicator';
+      gameStatusText.textContent = `${crashType} crash at ${crashGameState.currentMultiplier.toFixed(2)}x`;
+      
+      // Process all active bets
+      processCrashBets();
+      
+      // Start countdown for next game
+      setTimeout(() => {
+        startCrashCountdown();
+      }, 3000);
+    } else {
+      // Increase multiplier
+      const increment = crashType === "high" ?
+        (0.009 + Math.random() * 0.009) : // Faster growth for high crashes
+        (0.004 + Math.random() * 0.004); // Standard growth
+      
+      crashGameState.currentMultiplier += increment;
+      
+      // Update UI
+      crashMultiplier.textContent = crashGameState.currentMultiplier.toFixed(2) + 'x';
+      crashLine.style.height = (crashGameState.currentMultiplier * 2) + 'px';
+      
+      // Update rocket position
+      const maxHeight = 250; // Graph height
+      const rocketHeight = Math.min(maxHeight * (crashGameState.currentMultiplier / 10), maxHeight);
+      rocketContainer.style.bottom = `${rocketHeight}px`;
+      
+      // Check for auto cashouts
+      checkAutoCashouts();
+    }
+  }, 50);
+}
+
+        function placeCrashBet() {
+            const betAmount = parseFloat(crashBetAmount.value);
+            let autoCashoutMultiplier = null;
+
+            if (isNaN(betAmount)) {
+                showToast('Error', 'Please enter a valid bet amount.', 'danger');
+                return;
+            }
+
+            if (betAmount < 20) {
+                showToast('Error', 'Minimum bet amount is ৳20.', 'danger');
+                return;
+            }
+
+            if (betAmount > userData.balance) {
+                showToast('Error', 'Not enough balance for this bet.', 'danger');
+                return;
+            }
+
+            if (crashGameState.autoCashoutEnabled) {
+                autoCashoutMultiplier = parseFloat(crashAutoCashout.value);
+                
+                if (isNaN(autoCashoutMultiplier) || autoCashoutMultiplier < 1.01) {
+                    showToast('Error', 'Auto cashout must be at least 1.01x.', 'danger');
+                    return;
+                }
+            }
+
+            // Disable bet button
+            crashBetBtn.disabled = true;
+
+            // Deduct bet amount
+            updateUserBalance(-betAmount)
+                .then(() => {
+                    // Add to active bets
+                    const betId = Date.now().toString();
+                    const bet = {
+                        id: betId,
+                        userId: currentUser.uid,
+                        username: userData.username,
+                        amount: betAmount,
+                        autoCashout: autoCashoutMultiplier,
+                        cashedOut: false,
+                        cashoutMultiplier: null,
+                        timestamp: Date.now()
+                    };
+                    
+                    crashGameState.activeBets.push(bet);
+                    
+                    // Update active bets display
+                    updateActiveBetsDisplay();
+                    
+                    // Show active bets container if hidden
+                    activeBetsContainer.classList.remove('hidden');
+                    
+                    // Enable cashout button
+                    crashCashoutBtn.classList.remove('hidden');
+                    
+                    showToast('Bet Placed', 'Your bet of ৳' + betAmount.toFixed(2) + ' has been placed!', 'success');
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to place bet. Please try again.', 'danger');
+                    crashBetBtn.disabled = false;
+                });
+        }
+
+        function cashoutCrashGame() {
+            if (!crashGameState.running || crashGameState.crashed) {
+                showToast('Error', 'No active game to cashout from.', 'danger');
+                return;
+            }
+            
+            // Find all active bets for this user that haven't been cashed out
+            const userActiveBets = crashGameState.activeBets.filter(bet => 
+                bet.userId === currentUser.uid && !bet.cashedOut
+            );
+            
+            if (userActiveBets.length === 0) {
+                showToast('Error', 'You have no active bets to cashout.', 'danger');
+                return;
+            }
+            
+            // Disable cashout button
+            crashCashoutBtn.classList.add('hidden');
+            
+            // Cashout all active bets
+            userActiveBets.forEach(bet => {
+                bet.cashedOut = true;
+                bet.cashoutMultiplier = crashGameState.currentMultiplier;
+                
+                // Calculate winnings
+                const winnings = bet.amount * crashGameState.currentMultiplier;
+                
+                // Add to user balance
+                updateUserBalance(winnings)
+                    .then(() => {
+                        // Save transaction
+                        saveTransaction('crash', bet.amount, winnings - bet.amount, 
+                            `Cashed out at ${crashGameState.currentMultiplier.toFixed(2)}x`);
+                    });
+            });
+            
+            // Update active bets display
+            updateActiveBetsDisplay();
+            
+            showToast('Cashout Successful', `You cashed out at ${crashGameState.currentMultiplier.toFixed(2)}x!`, 'success');
+        }
+
+        function checkAutoCashouts() {
+            if (!crashGameState.running || crashGameState.crashed) return;
+            
+            // Check all active bets for auto cashout conditions
+            crashGameState.activeBets.forEach(bet => {
+                if (!bet.cashedOut && bet.autoCashout && 
+                    crashGameState.currentMultiplier >= bet.autoCashout) {
+                    
+                    // Auto cashout this bet
+                    bet.cashedOut = true;
+                    bet.cashoutMultiplier = crashGameState.currentMultiplier;
+                    
+                    // Calculate winnings
+                    const winnings = bet.amount * crashGameState.currentMultiplier;
+                    
+                    // Add to user balance
+                    updateUserBalance(winnings)
+                        .then(() => {
+                            // Save transaction
+                            saveTransaction('crash', bet.amount, winnings - bet.amount, 
+                                `Auto cashed out at ${crashGameState.currentMultiplier.toFixed(2)}x`);
+                            
+                            showToast('Auto Cashout', `Your bet of $${bet.amount.toFixed(2)} was auto cashed out at ${crashGameState.currentMultiplier.toFixed(2)}x!`, 'info');
+                        });
+                }
+            });
+            
+            // Update active bets display
+            updateActiveBetsDisplay();
+            
+            // Check if user still has active bets to show/hide cashout button
+            const hasActiveBets = crashGameState.activeBets.some(bet => 
+                bet.userId === currentUser.uid && !bet.cashedOut
+            );
+            
+            if (hasActiveBets) {
+                crashCashoutBtn.classList.remove('hidden');
+            } else {
+                crashCashoutBtn.classList.add('hidden');
+            }
+        }
+
+        function processCrashBets() {
+            // Process all active bets that haven't been cashed out
+            crashGameState.activeBets.forEach(bet => {
+                if (!bet.cashedOut) {
+                    // Bet lost - game crashed before cashout
+                    saveTransaction('crash', bet.amount, -bet.amount, 
+                        `Crashed at ${crashGameState.currentMultiplier.toFixed(2)}x`);
+                }
+            });
+            
+            // Clear all active bets
+            crashGameState.activeBets = [];
+            
+            // Update active bets display
+            updateActiveBetsDisplay();
+            
+            // Hide cashout button
+            crashCashoutBtn.classList.add('hidden');
+            
+            // Add to history
+            const resultItem = document.createElement('div');
+            resultItem.className = 'badge bg-danger';
+            resultItem.textContent = crashGameState.currentMultiplier.toFixed(2) + 'x';
+            crashHistory.prepend(resultItem);
+            
+            // Enable bet button for next round
+            crashBetBtn.disabled = false;
+        }
+
+        function updateActiveBetsDisplay() {
+            // Clear current display
+            activeBetsTable.innerHTML = '';
+            
+            // Filter active bets for current user
+            const userActiveBets = crashGameState.activeBets.filter(bet => 
+                bet.userId === currentUser.uid
+            );
+            
+            if (userActiveBets.length === 0) {
+                activeBetsContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Add each active bet to the table
+            userActiveBets.forEach(bet => {
+                const row = document.createElement('tr');
+                
+                if (bet.cashedOut) {
+                    row.innerHTML = `
+                        <td>$${bet.amount.toFixed(2)}</td>
+                        <td>${bet.autoCashout ? bet.autoCashout.toFixed(2) + 'x' : 'None'}</td>
+                        <td>${bet.cashoutMultiplier.toFixed(2)}x</td>
+                        <td class="text-success">$${(bet.amount * bet.cashoutMultiplier).toFixed(2)}</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>$${bet.amount.toFixed(2)}</td>
+                        <td>${bet.autoCashout ? bet.autoCashout.toFixed(2) + 'x' : 'None'}</td>
+                        <td>${crashGameState.running ? crashGameState.currentMultiplier.toFixed(2) + 'x' : '-'}</td>
+                        <td>$${(bet.amount * (crashGameState.running ? crashGameState.currentMultiplier : 0)).toFixed(2)}</td>
+                    `;
+                }
+                
+                activeBetsTable.appendChild(row);
+            });
+        }
+
+        // Auth functions
+        function handleLogin() {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value.trim();
+
+            if (!email || !password) {
+                showToast('Error', 'Please enter both email and password.', 'danger');
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    showToast('Success', 'Logged in successfully!', 'success');
+                })
+                .catch(error => {
+                    showToast('Login Error', getAuthErrorMessage(error), 'danger');
+                });
+        }
+
+        function handleRegister() {
+            const email = registerEmail.value.trim();
+            const password = registerPassword.value.trim();
+            const confirmPassword = registerConfirmPassword.value.trim();
+            const username = registerUsername.value.trim();
+
+            if (!username || username.length < 3) {
+                showToast('Error', 'Username must be at least 3 characters.', 'danger');
+                return;
+            }
+
+            if (!email) {
+                showToast('Error', 'Please enter a valid email address.', 'danger');
+                return;
+            }
+
+            if (!password || password.length < 6) {
+                showToast('Error', 'Password must be at least 6 characters.', 'danger');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showToast('Error', 'Passwords do not match.', 'danger');
+                return;
+            }
+
+            if (!registerTerms.checked) {
+                showToast('Error', 'You must agree to the terms and conditions.', 'danger');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Check if this is the admin user
+                    const isAdmin = email === ADMIN_EMAIL;
+                    
+                    // Save additional user data
+                    return database.ref('users/' + userCredential.user.uid).set({
+                        username: username,
+                        email: email,
+                        balance: 0, // Starting balance
+                        isAdmin: isAdmin,
+                        createdAt: Date.now()
+                    });
+                })
+                .then(() => {
+                    showToast('Success', 'Registered successfully!', 'success');
+                })
+                .catch(error => {
+                    showToast('Registration Error', getAuthErrorMessage(error), 'danger');
+                });
+        }
+
+        function handleLogout() {
+            auth.signOut()
+                .then(() => {
+                    showToast('Success', 'Logged out successfully!', 'success');
+                })
+                .catch(error => {
+                    showToast('Logout Error', error.message, 'danger');
+                });
+        }
+
+        function handleForgotPassword() {
+            const email = loginEmail.value.trim();
+            
+            if (!email) {
+                showToast('Error', 'Please enter your email address.', 'danger');
+                return;
+            }
+            
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    showToast('Success', 'Password reset email sent. Please check your inbox.', 'success');
+                })
+                .catch(error => {
+                    showToast('Error', getAuthErrorMessage(error), 'danger');
+                });
+        }
+
+        function getAuthErrorMessage(error) {
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    return 'Invalid email address.';
+                case 'auth/user-disabled':
+                    return 'This account has been disabled.';
+                case 'auth/user-not-found':
+                    return 'No account found with this email.';
+                case 'auth/wrong-password':
+                    return 'Incorrect password.';
+                case 'auth/email-already-in-use':
+                    return 'Email already in use by another account.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                default:
+                    return error.message;
+            }
+        }
+
+        // User data functions
+        function loadUserData() {
+            if (!currentUser) return;
+
+            database.ref('users/' + currentUser.uid).on('value', snapshot => {
+                userData = snapshot.val();
+                if (userData) {
+                    userBalance.textContent = userData.balance.toFixed(2);
+                    adminBtn.classList.toggle('hidden', !userData.isAdmin);
+                    
+                    // Load game history
+                    loadGameHistory();
+                    loadBankTransactions();
+                }
+            });
+        }
+
+        function updateUserBalance(amount) {
+            if (!currentUser || !userData) return Promise.reject('No user logged in');
+
+            const newBalance = userData.balance + amount;
+            return database.ref('users/' + currentUser.uid).update({
+                balance: newBalance
+            }).then(() => {
+                userData.balance = newBalance;
+                userBalance.textContent = newBalance.toFixed(2);
+                return newBalance;
+            });
+        }
+
+        // Bank functions
+        function submitDepositRequest() {
+            const amount = parseFloat(depositAmount.value);
+            const method = depositMethod.value;
+
+            if (isNaN(amount) || amount < 10) {
+                showToast('Error', 'Minimum deposit amount is ৳10.', 'danger');
+                return;
+            }
+
+            const depositData = {
+                userId: currentUser.uid,
+                username: userData.username,
+                type: 'deposit',
+                amount: amount,
+                method: method,
+                status: 'pending',
+                timestamp: Date.now()
+            };
+
+            database.ref('bankRequests').push(depositData)
+                .then(() => {
+                    showToast('Success', 'Deposit request submitted successfully!', 'success');
+                    depositForm.classList.add('hidden');
+                    depositAmount.value = '';
+                    loadBankTransactions();
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to submit deposit request: ' + error.message, 'danger');
+                });
+        }
+
+        function submitWithdrawRequest() {
+            const amount = parseFloat(withdrawAmount.value);
+            const method = withdrawMethod.value;
+            const wallet = withdrawWallet.value.trim();
+
+            if (isNaN(amount) || amount < 20) {
+                showToast('Error', 'Minimum withdrawal amount is ৳20.', 'danger');
+                return;
+            }
+
+            if (amount > userData.balance) {
+                showToast('Error', 'You don\'t have enough balance for this withdrawal.', 'danger');
+                return;
+            }
+
+            if (!wallet) {
+                showToast('Error', 'Please enter your wallet/account details.', 'danger');
+                return;
+            }
+
+            const withdrawData = {
+                userId: currentUser.uid,
+                username: userData.username,
+                type: 'withdraw',
+                amount: amount,
+                method: method,
+                wallet: wallet,
+                status: 'pending',
+                timestamp: Date.now()
+            };
+
+            database.ref('bankRequests').push(withdrawData)
+                .then(() => {
+                    showToast('Success', 'Withdrawal request submitted successfully!', 'success');
+                    withdrawForm.classList.add('hidden');
+                    withdrawAmount.value = '';
+                    withdrawWallet.value = '';
+                    loadBankTransactions();
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to submit withdrawal request: ' + error.message, 'danger');
+                });
+        }
+
+        function loadBankTransactions() {
+            if (!currentUser) return;
+
+            database.ref('bankRequests')
+                .orderByChild('userId')
+                .equalTo(currentUser.uid)
+                .limitToLast(10)
+                .once('value')
+                .then(snapshot => {
+                    bankHistory.innerHTML = '';
+                    const requests = snapshot.val();
+                    
+                    if (!requests) {
+                        bankHistory.innerHTML = '<div class="text-center text-muted py-3">No transactions yet</div>';
+                        return;
+                    }
+
+                    // Convert to array and sort by timestamp
+                    const requestsArray = Object.entries(requests).map(([id, request]) => ({ id, ...request }));
+                    requestsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+                    requestsArray.forEach(request => {
+                        const item = document.createElement('div');
+                        item.className = 'bank-history-item';
+                        
+                        const date = new Date(request.timestamp);
+                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                        
+                        let statusClass = '';
+                        if (request.status === 'pending') statusClass = 'bank-status-pending';
+                        if (request.status === 'approved') statusClass = 'bank-status-approved';
+                        if (request.status === 'rejected') statusClass = 'bank-status-rejected';
+                        
+                        item.innerHTML = `
+                            <div>
+                                <strong>${request.type === 'deposit' ? 'Deposit' : 'Withdraw'}</strong>
+                                <div class="text-muted small">${formattedDate}</div>
+                            </div>
+                            <div class="text-end">
+                                <div>$${request.amount.toFixed(2)}</div>
+                                <div class="${statusClass}">${request.status}</div>
+                            </div>
+                        `;
+                        
+                        bankHistory.appendChild(item);
+                    });
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to load bank transactions: ' + error.message, 'danger');
+                });
+        }
+
+        // Game functions
+        function playAvatarGame() {
+            const betAmount = parseFloat(avatarBetAmount.value);
+            const selectedAvatar = document.querySelector('.avatar-item.selected');
+
+            if (isNaN(betAmount)) {
+                showToast('Error', 'Please enter a valid bet amount.', 'danger');
+                return;
+            }
+
+            if (betAmount < 20) {
+                showToast('Error', 'Minimum bet amount is ৳20.', 'danger');
+                return;
+            }
+
+            if (betAmount > userData.balance) {
+                showToast('Error', 'Not enough balance for this bet.', 'danger');
+                return;
+            }
+
+            if (!selectedAvatar) {
+                showToast('Error', 'Please select an avatar.', 'danger');
+                return;
+            }
+
+            // Disable bet button during game
+            avatarBetBtn.disabled = true;
+
+            // Deduct bet amount
+            updateUserBalance(-betAmount)
+                .then(() => {
+                    // Simulate game
+                    const winningAvatar = Math.floor(Math.random() * 10) + 1;
+                    const isWin = parseInt(selectedAvatar.dataset.avatar) === winningAvatar;
+
+                    // Calculate winnings
+                    let winnings = 0;
+                    if (isWin) {
+                        winnings = betAmount * gameSettings.avatar.winMultiplier;
+                        updateUserBalance(winnings)
+                            .then(() => {
+                                showToast('Winner!', `You won! The winning avatar was ${winningAvatar}. You won $${winnings.toFixed(2)}!`, 'success');
+                            });
+                    } else {
+                        showToast('You Lost', `You lost. The winning avatar was ${winningAvatar}.`, 'danger');
+                    }
+
+                    // Add to history
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'badge ' + (isWin ? 'bg-success' : 'bg-danger');
+                    resultItem.textContent = `Avatar ${winningAvatar}`;
+                    avatarHistory.prepend(resultItem);
+
+                    // Save transaction
+                    saveTransaction('avatar', betAmount, isWin ? winnings - betAmount : -betAmount, `Avatar ${winningAvatar}`);
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to place bet. Please try again.', 'danger');
+                })
+                .finally(() => {
+                    avatarBetBtn.disabled = false;
+                });
+        }
+
+        function playUnderOverGame(choice) {
+            const betAmount = parseFloat(underoverBetAmount.value);
+
+            if (isNaN(betAmount)) {
+                showToast('Error', 'Please enter a valid bet amount.', 'danger');
+                return;
+            }
+
+            if (betAmount < 20) {
+                showToast('Error', 'Minimum bet amount is $20.', 'danger');
+                return;
+            }
+
+            if (betAmount > userData.balance) {
+                showToast('Error', 'Not enough balance for this bet.', 'danger');
+                return;
+            }
+
+            // Disable buttons during game
+            underBtn.disabled = true;
+            sevenBtn.disabled = true;
+            overBtn.disabled = true;
+
+            // Deduct bet amount
+            updateUserBalance(-betAmount)
+                .then(() => {
+                    // Simulate dice roll (2 dice)
+                    const dice1 = Math.floor(Math.random() * 6) + 1;
+                    const dice2 = Math.floor(Math.random() * 6) + 1;
+                    const total = dice1 + dice2;
+
+                    // Determine result
+                    let isWin = false;
+                    let payoutMultiplier = 1;
+
+                    if (choice === 'under' && total < 7) {
+                        isWin = true;
+                        payoutMultiplier = gameSettings.underover.underPayout;
+                    } else if (choice === 'over' && total > 7) {
+                        isWin = true;
+                        payoutMultiplier = gameSettings.underover.overPayout;
+                    } else if (choice === 'seven' && total === 7) {
+                        isWin = true;
+                        payoutMultiplier = gameSettings.underover.sevenPayout;
+                    }
+
+                    // Calculate winnings
+                    let winnings = 0;
+                    if (isWin) {
+                        winnings = betAmount * payoutMultiplier;
+                        updateUserBalance(winnings)
+                            .then(() => {
+                                showToast('Winner!', `You won! The dice rolled ${dice1} and ${dice2} (total ${total}). You won $${winnings.toFixed(2)}!`, 'success');
+                            });
+                    } else {
+                        showToast('You Lost', `You lost. The dice rolled ${dice1} and ${dice2} (total ${total}).`, 'danger');
+                    }
+
+                    // Add to history
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'badge ' + (isWin ? 'bg-success' : 'bg-danger');
+                    resultItem.textContent = `${dice1}+${dice2}=${total}`;
+                    underoverHistory.prepend(resultItem);
+
+                    // Save transaction
+                    saveTransaction('underover', betAmount, isWin ? winnings - betAmount : -betAmount, `${dice1}+${dice2}=${total}`);
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to place bet. Please try again.', 'danger');
+                })
+                .finally(() => {
+                    underBtn.disabled = false;
+                    sevenBtn.disabled = false;
+                    overBtn.disabled = false;
+                });
+        }
+
+        function playCrystalGame(color) {
+            const betAmount = parseFloat(crystalBetAmount.value);
+
+            if (isNaN(betAmount)) {
+                showToast('Error', 'Please enter a valid bet amount.', 'danger');
+                return;
+            }
+
+            if (betAmount < 20) {
+                showToast('Error', 'Minimum bet amount is $20.', 'danger');
+                return;
+            }
+
+            if (betAmount > userData.balance) {
+                showToast('Error', 'Not enough balance for this bet.', 'danger');
+                return;
+            }
+
+            // Disable buttons during game
+            redCrystal.disabled = true;
+            blueCrystal.disabled = true;
+            greenCrystal.disabled = true;
+            purpleCrystal.disabled = true;
+
+            // Deduct bet amount
+            updateUserBalance(-betAmount)
+                .then(() => {
+                    // Simulate game
+                    const colors = ['red', 'blue', 'green', 'purple'];
+                    const winningColor = colors[Math.floor(Math.random() * colors.length)];
+                    const isWin = color === winningColor;
+
+                    // Calculate winnings
+                    let winnings = 0;
+                    if (isWin) {
+                        winnings = betAmount * gameSettings.crystal.payout;
+                        updateUserBalance(winnings)
+                            .then(() => {
+                                showToast('Winner!', `You won! The winning color was ${winningColor}. You won $${winnings.toFixed(2)}!`, 'success');
+                            });
+                    } else {
+                        showToast('You Lost', `You lost. The winning color was ${winningColor}.`, 'danger');
+                    }
+
+                    // Add to history
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'badge ' + (isWin ? 'bg-success' : 'bg-danger');
+                    resultItem.textContent = winningColor;
+                    crystalHistory.prepend(resultItem);
+
+                    // Save transaction
+                    saveTransaction('crystal', betAmount, isWin ? winnings - betAmount : -betAmount, winningColor);
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to place bet. Please try again.', 'danger');
+                })
+                .finally(() => {
+                    redCrystal.disabled = false;
+                    blueCrystal.disabled = false;
+                    greenCrystal.disabled = false;
+                    purpleCrystal.disabled = false;
+                });
+        }
+
+        function playAppleGame() {
+            const betAmount = parseFloat(appleBetAmount.value);
+
+            if (isNaN(betAmount)) {
+                showToast('Error', 'Please enter a valid bet amount.', 'danger');
+                return;
+            }
+
+            if (betAmount < 20) {
+                showToast('Error', 'Minimum bet amount is $20.', 'danger');
+                return;
+            }
+
+            if (betAmount > userData.balance) {
+                showToast('Error', 'Not enough balance for this bet.', 'danger');
+                return;
+            }
+
+            // Disable button during game
+            appleSpin.disabled = true;
+
+            // Deduct bet amount
+            updateUserBalance(-betAmount)
+                .then(() => {
+                    // Simulate spin animation
+                    let spins = 0;
+                    const maxSpins = 10 + Math.floor(Math.random() * 10);
+                    const spinInterval = setInterval(() => {
+                        const apples = ['🍎', '🍏'];
+                        appleWheel.textContent = Array(6).fill(0).map(() => apples[Math.floor(Math.random() * apples.length)]).join('');
+                        spins++;
+                        
+                        if (spins >= maxSpins) {
+                            clearInterval(spinInterval);
+                            determineAppleResult(betAmount);
+                        }
+                    }, 100);
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to place bet. Please try again.', 'danger');
+                    appleSpin.disabled = false;
+                });
+        }
+
+        function determineAppleResult(betAmount) {
+            // Determine result (50/50 chance)
+            const isWin = Math.random() > 0.5;
+            const multiplier = isWin ? gameSettings.apple.payout : 0;
+
+            // Calculate winnings
+            let winnings = 0;
+            if (isWin) {
+                winnings = betAmount * multiplier;
+                updateUserBalance(winnings)
+                    .then(() => {
+                        showToast('Winner!', `You won! You got ${multiplier}x your bet. You won $${winnings.toFixed(2)}!`, 'success');
+                    });
+            } else {
+                showToast('You Lost', 'You lost. Better luck next time!', 'danger');
+            }
+
+            // Add to history
+            const resultItem = document.createElement('div');
+            resultItem.className = 'badge ' + (isWin ? 'bg-success' : 'bg-danger');
+            resultItem.textContent = isWin ? 'Win' : 'Loss';
+            appleHistory.prepend(resultItem);
+
+            // Save transaction
+            saveTransaction('apple', betAmount, isWin ? winnings - betAmount : -betAmount, isWin ? 'Win' : 'Loss');
+            
+            // Re-enable spin button
+            appleSpin.disabled = false;
+        }
+
+        // Admin functions
+        function showAdminPanel() {
+            if (!userData || !userData.isAdmin) {
+                showToast('Access Denied', 'You do not have admin privileges.', 'danger');
+                return;
+            }
+
+            gameSection.classList.add('hidden');
+            adminPanel.classList.remove('hidden');
+            loadAdminData();
+        }
+
+        function showGameSection() {
+            adminPanel.classList.add('hidden');
+            gameSection.classList.remove('hidden');
+        }
+
+        function loadAdminData() {
+            // Load users
+            loadUsers();
+            
+            // Load transactions
+            loadTransactions();
+            
+            // Load bank requests
+            loadBankRequests();
+        }
+
+        function loadUsers() {
+            let usersRef = database.ref('users').orderByChild('createdAt');
+            
+            // Apply pagination
+            usersRef = usersRef.limitToLast(usersPagination.pageSize * usersPagination.currentPage);
+            
+            usersRef.once('value').then(snapshot => {
+                usersTable.innerHTML = '';
+                const users = snapshot.val();
+                transactionUser.innerHTML = '<option value="">All Users</option>';
+                
+                if (!users) {
+                    usersPagination.totalUsers = 0;
+                    updateUserPaginationInfo();
+                    return;
+                }
+                
+                // Convert to array and sort by createdAt
+                const usersArray = Object.entries(users).map(([userId, user]) => ({ userId, ...user }));
+                usersArray.sort((a, b) => b.createdAt - a.createdAt);
+                
+                // Apply pagination
+                const startIndex = (usersPagination.currentPage - 1) * usersPagination.pageSize;
+                const paginatedUsers = usersArray.slice(startIndex, startIndex + usersPagination.pageSize);
+                
+                usersPagination.totalUsers = usersArray.length;
+                updateUserPaginationInfo();
+                
+                // Display users
+                paginatedUsers.forEach(user => {
+                    // Add to users table
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.userId.substring(0, 8)}</td>
+                        <td>${user.username || 'N/A'}</td>
+                        <td>${user.email || 'N/A'}</td>
+                        <td>$${user.balance ? user.balance.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <span class="badge ${user.isAdmin ? 'bg-success' : 'bg-secondary'}">
+                                ${user.isAdmin ? 'Admin' : 'User'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-balance" data-userid="${user.userId}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-${user.isAdmin ? 'warning' : 'success'} toggle-admin" data-userid="${user.userId}" data-isadmin="${user.isAdmin}">
+                                <i class="fas fa-user-shield"></i>
+                            </button>
+                        </td>
+                    `;
+                    usersTable.appendChild(row);
+                    
+                    // Add to transaction filter
+                    const option = document.createElement('option');
+                    option.value = user.userId;
+                    option.textContent = `${user.username} (${user.email})`;
+                    transactionUser.appendChild(option);
+                });
+                
+                // Add event listeners to edit buttons
+                document.querySelectorAll('.edit-balance').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const userId = btn.dataset.userid;
+                        const currentBalance = parseFloat(btn.closest('tr').querySelector('td:nth-child(4)').textContent.substring(1));
+                        
+                        const newBalance = prompt('Enter new balance:', currentBalance);
+                        if (newBalance && !isNaN(newBalance)) {
+                            database.ref('users/' + userId).update({
+                                balance: parseFloat(newBalance)
+                            }).then(() => {
+                                showToast('Success', 'User balance updated successfully.', 'success');
+                            }).catch(error => {
+                                showToast('Error', 'Failed to update balance: ' + error.message, 'danger');
+                            });
+                        }
+                    });
+                });
+                
+                // Add event listeners to toggle admin buttons
+                document.querySelectorAll('.toggle-admin').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const userId = btn.dataset.userid;
+                        const isAdmin = btn.dataset.isadmin === 'true';
+                        
+                        if (confirm(`Are you sure you want to ${isAdmin ? 'remove' : 'grant'} admin privileges for this user?`)) {
+                            database.ref('users/' + userId).update({
+                                isAdmin: !isAdmin
+                            }).then(() => {
+                                showToast('Success', `Admin privileges ${isAdmin ? 'removed' : 'granted'} successfully.`, 'success');
+                                loadUsers();
+                            }).catch(error => {
+                                showToast('Error', 'Failed to update admin status: ' + error.message, 'danger');
+                            });
+                        }
+                    });
+                });
+            }).catch(error => {
+                showToast('Error', 'Failed to load users: ' + error.message, 'danger');
+            });
+        }
+
+        function searchUsers() {
+            const searchTerm = userSearch.value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                loadUsers();
+                return;
+            }
+            
+            database.ref('users').once('value').then(snapshot => {
+                usersTable.innerHTML = '';
+                const users = snapshot.val();
+                
+                if (!users) {
+                    showToast('No Users', 'No users found.', 'info');
+                    return;
+                }
+                
+                // Filter users by search term
+                const filteredUsers = Object.entries(users)
+                    .map(([userId, user]) => ({ userId, ...user }))
+                    .filter(user => 
+                        (user.username && user.username.toLowerCase().includes(searchTerm)) ||
+                        (user.email && user.email.toLowerCase().includes(searchTerm))
+                    );
+                
+                if (filteredUsers.length === 0) {
+                    showToast('No Results', 'No users match your search.', 'info');
+                    return;
+                }
+                
+                // Display filtered users
+                filteredUsers.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.userId.substring(0, 8)}</td>
+                        <td>${user.username || 'N/A'}</td>
+                        <td>${user.email || 'N/A'}</td>
+                        <td>$${user.balance ? user.balance.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <span class="badge ${user.isAdmin ? 'bg-success' : 'bg-secondary'}">
+                                ${user.isAdmin ? 'Admin' : 'User'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-balance" data-userid="${user.userId}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-${user.isAdmin ? 'warning' : 'success'} toggle-admin" data-userid="${user.userId}" data-isadmin="${user.isAdmin}">
+                                <i class="fas fa-user-shield"></i>
+                            </button>
+                        </td>
+                    `;
+                    usersTable.appendChild(row);
+                });
+                
+                // Add event listeners to edit buttons
+                document.querySelectorAll('.edit-balance').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const userId = btn.dataset.userid;
+                        const currentBalance = parseFloat(btn.closest('tr').querySelector('td:nth-child(4)').textContent.substring(1));
+                        
+                        const newBalance = prompt('Enter new balance:', currentBalance);
+                        if (newBalance && !isNaN(newBalance)) {
+                            database.ref('users/' + userId).update({
+                                balance: parseFloat(newBalance)
+                            }).then(() => {
+                                showToast('Success', 'User balance updated successfully.', 'success');
+                            }).catch(error => {
+                                showToast('Error', 'Failed to update balance: ' + error.message, 'danger');
+                            });
+                        }
+                    });
+                });
+                
+                // Add event listeners to toggle admin buttons
+                document.querySelectorAll('.toggle-admin').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const userId = btn.dataset.userid;
+                        const isAdmin = btn.dataset.isadmin === 'true';
+                        
+                        if (confirm(`Are you sure you want to ${isAdmin ? 'remove' : 'grant'} admin privileges for this user?`)) {
+                            database.ref('users/' + userId).update({
+                                isAdmin: !isAdmin
+                            }).then(() => {
+                                showToast('Success', `Admin privileges ${isAdmin ? 'removed' : 'granted'} successfully.`, 'success');
+                                loadUsers();
+                            }).catch(error => {
+                                showToast('Error', 'Failed to update admin status: ' + error.message, 'danger');
+                            });
+                        }
+                    });
+                });
+            }).catch(error => {
+                showToast('Error', 'Failed to search users: ' + error.message, 'danger');
+            });
+        }
+
+        function loadTransactions() {
+            let transactionsRef = database.ref('transactions').orderByChild('timestamp');
+            
+            // Apply filters if set
+            const userIdFilter = transactionUser.value;
+            const gameFilter = transactionGame.value;
+            const dateFilter = transactionDate.value;
+            
+            if (userIdFilter) {
+                transactionsRef = transactionsRef.orderByChild('userId').equalTo(userIdFilter);
+            }
+            
+            transactionsRef.once('value').then(snapshot => {
+                transactionsTable.innerHTML = '';
+                const transactions = snapshot.val();
+                
+                if (!transactions) {
+                    transactionsPagination.totalTransactions = 0;
+                    updateTransactionPaginationInfo();
+                    return;
+                }
+                
+                // Convert to array and sort by timestamp
+                const transactionsArray = Object.entries(transactions).map(([id, tx]) => ({ id, ...tx }));
+                transactionsArray.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // Apply filters
+                let filteredTransactions = transactionsArray;
+                
+                if (gameFilter) {
+                    filteredTransactions = filteredTransactions.filter(tx => tx.game === gameFilter);
+                }
+                
+                if (dateFilter) {
+                    const filterDate = new Date(dateFilter);
+                    const filterDateStart = new Date(filterDate.setHours(0, 0, 0, 0)).getTime();
+                    const filterDateEnd = new Date(filterDate.setHours(23, 59, 59, 999)).getTime();
+                    
+                    filteredTransactions = filteredTransactions.filter(tx => 
+                        tx.timestamp >= filterDateStart && tx.timestamp <= filterDateEnd
+                    );
+                }
+                
+                transactionsPagination.totalTransactions = filteredTransactions.length;
+                updateTransactionPaginationInfo();
+                
+                // Apply pagination
+                const startIndex = (transactionsPagination.currentPage - 1) * transactionsPagination.pageSize;
+                const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + transactionsPagination.pageSize);
+                
+                // Display transactions
+                paginatedTransactions.forEach(tx => {
+                    const txDate = new Date(tx.timestamp);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${tx.id.substring(0, 8)}</td>
+                        <td>${tx.username || 'Unknown'}</td>
+                        <td>
+                            <span class="badge bg-info text-capitalize">${tx.game}</span>
+                        </td>
+                        <td class="${tx.amount >= 0 ? 'text-success' : 'text-danger'}">
+                            $${Math.abs(tx.amount).toFixed(2)}
+                        </td>
+                        <td>$${tx.betAmount ? tx.betAmount.toFixed(2) : '0.00'}</td>
+                        <td>${tx.result}</td>
+                        <td>${txDate.toLocaleString()}</td>
+                    `;
+                    transactionsTable.appendChild(row);
+                });
+            }).catch(error => {
+                showToast('Error', 'Failed to load transactions: ' + error.message, 'danger');
+            });
+        }
+
+        function loadBankRequests() {
+            let requestsRef = database.ref('bankRequests').orderByChild('timestamp');
+            
+            // Apply filters if set
+            const typeFilter = requestType.value;
+            const statusFilter = requestStatus.value;
+            const dateFilter = requestDate.value;
+            
+            requestsRef.once('value').then(snapshot => {
+                bankRequestsTable.innerHTML = '';
+                const requests = snapshot.val();
+                
+                if (!requests) {
+                    requestsPagination.totalRequests = 0;
+                    updateRequestPaginationInfo();
+                    return;
+                }
+                
+                // Convert to array and sort by timestamp
+                const requestsArray = Object.entries(requests).map(([id, req]) => ({ id, ...req }));
+                requestsArray.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // Apply filters
+                let filteredRequests = requestsArray;
+                
+                if (typeFilter) {
+                    filteredRequests = filteredRequests.filter(req => req.type === typeFilter);
+                }
+                
+                if (statusFilter) {
+                    filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
+                }
+                
+                if (dateFilter) {
+                    const filterDate = new Date(dateFilter);
+                    const filterDateStart = new Date(filterDate.setHours(0, 0, 0, 0)).getTime();
+                    const filterDateEnd = new Date(filterDate.setHours(23, 59, 59, 999)).getTime();
+                    
+                    filteredRequests = filteredRequests.filter(req => 
+                        req.timestamp >= filterDateStart && req.timestamp <= filterDateEnd
+                    );
+                }
+                
+                requestsPagination.totalRequests = filteredRequests.length;
+                updateRequestPaginationInfo();
+                
+                // Apply pagination
+                const startIndex = (requestsPagination.currentPage - 1) * requestsPagination.pageSize;
+                const paginatedRequests = filteredRequests.slice(startIndex, startIndex + requestsPagination.pageSize);
+                
+                // Display requests
+                paginatedRequests.forEach(req => {
+                    const reqDate = new Date(req.timestamp);
+                    const row = document.createElement('tr');
+                    
+                    let statusBadgeClass = '';
+                    if (req.status === 'pending') statusBadgeClass = 'bg-warning';
+                    if (req.status === 'approved') statusBadgeClass = 'bg-success';
+                    if (req.status === 'rejected') statusBadgeClass = 'bg-danger';
+                    
+                    row.innerHTML = `
+                        <td>${req.id.substring(0, 8)}</td>
+                        <td>${req.username || 'Unknown'}</td>
+                        <td class="text-capitalize">${req.type}</td>
+                        <td>$${req.amount.toFixed(2)}</td>
+                        <td class="text-capitalize">${req.method}</td>
+                        <td><span class="badge ${statusBadgeClass}">${req.status}</span></td>
+                        <td>${reqDate.toLocaleString()}</td>
+                        <td>
+                            ${req.status === 'pending' ? `
+                                <button class="btn btn-sm btn-success approve-request" data-requestid="${req.id}" data-userid="${req.userId}" data-amount="${req.amount}" data-type="${req.type}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger reject-request" data-requestid="${req.id}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
+                            ${req.type === 'withdraw' ? `
+                                <button class="btn btn-sm btn-info view-wallet" data-wallet="${req.wallet}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    `;
+                    bankRequestsTable.appendChild(row);
+                });
+                
+                // Add event listeners to approve/reject buttons
+                document.querySelectorAll('.approve-request').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const requestId = btn.dataset.requestid;
+                        const userId = btn.dataset.userid;
+                        const amount = parseFloat(btn.dataset.amount);
+                        const type = btn.dataset.type;
+                        
+                        // Update request status
+                        database.ref('bankRequests/' + requestId).update({
+                            status: 'approved'
+                        }).then(() => {
+                            // If this is a deposit, add to user's balance
+                            if (type === 'deposit') {
+                                return database.ref('users/' + userId).once('value').then(snapshot => {
+                                    const user = snapshot.val();
+                                    const newBalance = (user.balance || 0) + amount;
+                                    return database.ref('users/' + userId).update({
+                                        balance: newBalance
+                                    });
+                                });
+                            }
+                        }).then(() => {
+                            showToast('Success', 'Request approved successfully.', 'success');
+                            loadBankRequests();
+                        }).catch(error => {
+                            showToast('Error', 'Failed to approve request: ' + error.message, 'danger');
+                        });
+                    });
+                });
+                
+                document.querySelectorAll('.reject-request').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const requestId = btn.dataset.requestid;
+                        
+                        // Update request status
+                        database.ref('bankRequests/' + requestId).update({
+                            status: 'rejected'
+                        }).then(() => {
+                            showToast('Success', 'Request rejected successfully.', 'success');
+                            loadBankRequests();
+                        }).catch(error => {
+                            showToast('Error', 'Failed to reject request: ' + error.message, 'danger');
+                        });
+                    });
+                });
+                
+                // Add event listeners to view wallet buttons
+                document.querySelectorAll('.view-wallet').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const walletInfo = btn.dataset.wallet;
+                        walletInfoContent.textContent = walletInfo;
+                        walletInfoModal.show();
+                    });
+                });
+            }).catch(error => {
+                showToast('Error', 'Failed to load bank requests: ' + error.message, 'danger');
+            });
+        }
+
+        function loadGameSettings() {
+  database.ref('gameSettings').once('value').then(snapshot => {
+    const settings = snapshot.val();
+    if (settings) {
+      gameSettings = settings;
+      
+      // Update UI
+      crashHouseEdge.value = gameSettings.crash.houseEdge;
+      crashMaxMultiplier.value = gameSettings.crash.maxMultiplier;
+      document.getElementById('low-crash-range').value = gameSettings.crash.lowCrashRange;
+      document.getElementById('low-crash-chance').value = gameSettings.crash.lowCrashChance;
+      document.getElementById('medium-crash-range').value = gameSettings.crash.mediumCrashRange;
+      document.getElementById('medium-crash-chance').value = gameSettings.crash.mediumCrashChance;
+      document.getElementById('high-crash-chance').value = gameSettings.crash.highCrashChance;
+      document.getElementById('high-crash-min').value = gameSettings.crash.highCrashMin;
+    }
+  }).catch(error => {
+    showToast('Error', 'Failed to load game settings: ' + error.message, 'danger');
+  });
+}
+
+        function saveGameSettings() {
+  const newSettings = {
+    crash: {
+      houseEdge: parseFloat(crashHouseEdge.value),
+      maxMultiplier: parseFloat(crashMaxMultiplier.value),
+      lowCrashRange: parseFloat(document.getElementById('low-crash-range').value),
+      lowCrashChance: parseFloat(document.getElementById('low-crash-chance').value),
+      mediumCrashRange: parseFloat(document.getElementById('medium-crash-range').value),
+      mediumCrashChance: parseFloat(document.getElementById('medium-crash-chance').value),
+      highCrashChance: parseFloat(document.getElementById('high-crash-chance').value),
+      highCrashMin: parseFloat(document.getElementById('high-crash-min').value)
+    },
+    // ... rest of your settings
+  };
+  
+  // Validate settings
+  if (newSettings.crash.houseEdge < 0 || newSettings.crash.houseEdge > 10) {
+    showToast('Error', 'House edge must be between 0 and 10%.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.maxMultiplier < 1) {
+    showToast('Error', 'Max multiplier must be at least 1x.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.lowCrashRange < 1.01) {
+    showToast('Error', 'Low crash range must be at least 1.01x.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.mediumCrashRange <= newSettings.crash.lowCrashRange) {
+    showToast('Error', 'Medium crash range must be higher than low crash range.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.highCrashMin <= newSettings.crash.mediumCrashRange) {
+    showToast('Error', 'High crash minimum must be higher than medium crash range.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.lowCrashChance < 1 || newSettings.crash.lowCrashChance > 100) {
+    showToast('Error', 'Low crash chance must be between 1% and 100%.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.mediumCrashChance < 1 || newSettings.crash.mediumCrashChance > 100) {
+    showToast('Error', 'Medium crash chance must be between 1% and 100%.', 'danger');
+    return;
+  }
+  
+  if (newSettings.crash.highCrashChance < 1 || newSettings.crash.highCrashChance > 100) {
+    showToast('Error', 'High crash chance must be between 1% and 100%.', 'danger');
+    return;
+  }
+  
+  // Ensure total chance doesn't exceed 100%
+  const totalChance = newSettings.crash.lowCrashChance + newSettings.crash.mediumCrashChance + newSettings.crash.highCrashChance;
+  if (totalChance > 100) {
+    showToast('Error', 'Total crash chance cannot exceed 100%. Current total: ' + totalChance + '%', 'danger');
+    return;
+  }
+  
+  database.ref('gameSettings').set(newSettings)
+    .then(() => {
+      gameSettings = newSettings;
+      showToast('Success', 'Settings saved successfully!', 'success');
+    })
+    .catch(error => {
+      showToast('Error', 'Failed to save settings: ' + error.message, 'danger');
+    });
+}
+
+        function loadGameHistory() {
+            if (!currentUser) return;
+            
+            // Load crash history
+            database.ref('transactions')
+                .orderByChild('userId')
+                .equalTo(currentUser.uid)
+                .limitToLast(10)
+                .once('value')
+                .then(snapshot => {
+                    const transactions = snapshot.val();
+                    if (!transactions) return;
+                    
+                    // Convert to array and sort by timestamp
+                    const transactionsArray = Object.values(transactions);
+                    transactionsArray.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // Filter by game and update history
+                    transactionsArray.forEach(tx => {
+                        if (tx.game === 'crash') {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'badge ' + (tx.amount >= 0 ? 'bg-success' : 'bg-danger');
+                            resultItem.textContent = tx.result;
+                            crashHistory.prepend(resultItem);
+                        } else if (tx.game === 'avatar') {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'badge ' + (tx.amount >= 0 ? 'bg-success' : 'bg-danger');
+                            resultItem.textContent = tx.result;
+                            avatarHistory.prepend(resultItem);
+                        } else if (tx.game === 'underover') {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'badge ' + (tx.amount >= 0 ? 'bg-success' : 'bg-danger');
+                            resultItem.textContent = tx.result;
+                            underoverHistory.prepend(resultItem);
+                        } else if (tx.game === 'crystal') {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'badge ' + (tx.amount >= 0 ? 'bg-success' : 'bg-danger');
+                            resultItem.textContent = tx.result;
+                            crystalHistory.prepend(resultItem);
+                        } else if (tx.game === 'apple') {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'badge ' + (tx.amount >= 0 ? 'bg-success' : 'bg-danger');
+                            resultItem.textContent = tx.result;
+                            appleHistory.prepend(resultItem);
+                        }
+                    });
+                });
+        }
+
+        // Utility functions
+        function saveTransaction(game, betAmount, netAmount, result) {
+            if (!currentUser || !userData) return;
+            
+            const transaction = {
+                userId: currentUser.uid,
+                username: userData.username,
+                game: game,
+                amount: netAmount,
+                betAmount: betAmount,
+                result: result,
+                timestamp: Date.now()
+            };
+            
+            database.ref('transactions').push(transaction);
+        }
+
+        function showToast(title, message, type) {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            // Set toast color based on type
+            const toastHeader = toastEl.querySelector('.toast-header');
+            const toastBody = toastEl.querySelector('.toast-body');
+            
+            // Reset classes
+            toastHeader.className = 'toast-header';
+            toastBody.className = 'toast-body';
+            
+            // Add type-specific classes
+            switch (type) {
+                case 'success':
+                    toastHeader.classList.add('bg-success', 'text-white');
+                    break;
+                case 'danger':
+                    toastHeader.classList.add('bg-danger', 'text-white');
+                    break;
+                case 'info':
+                    toastHeader.classList.add('bg-info', 'text-white');
+                    break;
+                case 'warning':
+                    toastHeader.classList.add('bg-warning', 'text-dark');
+                    break;
+                default:
+                    toastHeader.classList.add('bg-primary', 'text-white');
+            }
+            
+            toast.show();
+        }
+
+        function updateUserPaginationInfo() {
+            const start = (usersPagination.currentPage - 1) * usersPagination.pageSize + 1;
+            const end = Math.min(usersPagination.currentPage * usersPagination.pageSize, usersPagination.totalUsers);
+            userPaginationInfo.textContent = `Showing ${start}-${end} of ${usersPagination.totalUsers}`;
+            
+            // Disable/enable pagination buttons
+            prevUsersBtn.disabled = usersPagination.currentPage <= 1;
+            nextUsersBtn.disabled = usersPagination.currentPage * usersPagination.pageSize >= usersPagination.totalUsers;
+        }
+
+        function updateTransactionPaginationInfo() {
+            const start = (transactionsPagination.currentPage - 1) * transactionsPagination.pageSize + 1;
+            const end = Math.min(transactionsPagination.currentPage * transactionsPagination.pageSize, transactionsPagination.totalTransactions);
+            transactionPaginationInfo.textContent = `Showing ${start}-${end} of ${transactionsPagination.totalTransactions}`;
+            
+            // Disable/enable pagination buttons
+            prevTransactionsBtn.disabled = transactionsPagination.currentPage <= 1;
+            nextTransactionsBtn.disabled = transactionsPagination.currentPage * transactionsPagination.pageSize >= transactionsPagination.totalTransactions;
+        }
+
+        function updateRequestPaginationInfo() {
+            const start = (requestsPagination.currentPage - 1) * requestsPagination.pageSize + 1;
+            const end = Math.min(requestsPagination.currentPage * requestsPagination.pageSize, requestsPagination.totalRequests);
+            requestPaginationInfo.textContent = `Showing ${start}-${end} of ${requestsPagination.totalRequests}`;
+            
+            // Disable/enable pagination buttons
+            prevRequestsBtn.disabled = requestsPagination.currentPage <= 1;
+            nextRequestsBtn.disabled = requestsPagination.currentPage * requestsPagination.pageSize >= requestsPagination.totalRequests;
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
