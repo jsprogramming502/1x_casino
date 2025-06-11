@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Projects Landing Page</title>
+  <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    body {
+      background-color: #f9fafb;
+      color: #333;
+    }
+    header {
+      padding: 2rem;
+      background: linear-gradient(120deg, #4f46e5, #3b82f6);
+      color: #fff;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .filter {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+    .filter button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: #3b82f6;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .filter button:hover, .filter button.active {
+      background: #1e40af;
+    }
+
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      padding: 0 1rem 2rem;
+      max-width: 1200px;
+      margin: auto;
+    }
+    .project {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+    .project:hover {
+      transform: translateY(-5px);
+    }
+    .project img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .project-content {
+      padding: 1rem;
+    }
+    .project-content h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: #111827;
+    }
+    .project-content p {
+      font-size: 0.95rem;
+      color: #4b5563;
+    }
+
+    @media (max-width: 500px) {
+      header h1 {
+        font-size: 2rem;
+      }
+    }
+   .btn{
+     padding:4px;
+     width:100px;
+     margin-bottom:5px;
+     margin-right:5px;
+   }
+  #dawnload{
+    background: orange;
+    border:1px solid orange;
+    border-radius:5px;
+    height:35px;
+  }
+  #view {
+    color: white;
+  background: blue;
+  border: 1px solid blue;
+  border-radius: 5px;
+  height: 35px;
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>My Projects</h1>
+</header>
+
+<div class="filter">
+  <button class="active" onclick="filterProjects('all')">All</button>
+  <button onclick="filterProjects('web')">Web</button>
+  <button onclick="filterProjects('design')">Design</button>
+  <button onclick="filterProjects('mobile')">Mobile</button>
+</div>
+
+<section class="projects">
+  <div class="project" data-category="web">
+    <img src="https://raw.githubusercontent.com/jsprogramming502/1x_casino/refs/heads/main/rdx.jpg" alt="Web Project 1">
+    <div class="project-content">
+      <h3>Movie/video Website</h3>
+      <button type="button" class="btn" id="view" onclick="http://rdxweb.free.nf/?i=1">View website</button>
+      <button type="button" class="btn" id="dawnload" onclick="">Download</button>
+      <p>Responsive website built with HTML, CSS, and JavaScript.</p>
+    </div>
+  </div>
+  <div class="project" data-category="design">
+    <img src="https://via.placeholder.com/400x180/f97316/fff?text=Design+Project+1" alt="Design Project 1">
+    <div class="project-content">
+      <h3>Design Project 1</h3>
+      <p>Creative branding and UI/UX design project.</p>
+    </div>
+  </div>
+  <div class="project" data-category="mobile">
+    <img src="https://raw.githubusercontent.com/jsprogramming502/1x_casino/refs/heads/main/ddd.jpg" alt="Mobile Project 1">
+    <div class="project-content">
+      <h3>Dokan Hishab</h3>
+      <button type="button" class="btn" id="view" onclick="">View Apps</button>
+      <button type="button" class="btn" id="dawnload" onclick="">Download</button>
+      <p>Mobile app interface for Android and iOS platforms.</p>
+    </div>
+  </div>
+  <div class="project" data-category="web">
+    <img src="https://via.placeholder.com/400x180/6366f1/fff?text=Web+Project+2" alt="Web Project 2">
+    <div class="project-content">
+      <h3>Web Project 2</h3>
+      <p>Full-stack application with REST APIs.</p>
+    </div>
+  </div>
+  <div class="project" data-category="design">
+    <img src="https://via.placeholder.com/400x180/facc15/333?text=Design+Project+2" alt="Design Project 2">
+    <div class="project-content">
+      <h3>Design Project 2</h3>
+      <p>Brand identity package for a startup.</p>
+    </div>
+  </div>
+  <div class="project" data-category="mobile">
+    <img src="https://via.placeholder.com/400x180/06b6d4/fff?text=Mobile+Project+2" alt="Mobile Project 2">
+    <div class="project-content">
+      <h3>Mobile Project 2</h3>
+      <p>Flutter-based app for e-commerce solutions.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  function filterProjects(category) {
+    const projects = document.querySelectorAll('.project');
+    const buttons = document.querySelectorAll('.filter button');
+
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    projects.forEach(project => {
+      if (category === 'all' || project.dataset.category === category) {
+        project.style.display = 'block';
+      } else {
+        project.style.display = 'none';
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
